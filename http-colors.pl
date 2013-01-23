@@ -1,13 +1,14 @@
 #!/usr/bin/env perl
 
 use strict;
+use warnings;
 
 use HTTP::Daemon;
 use HTTP::Status;
 
+use MIME::Base64;
 use CAM::PDF;
 use CAM::PDF::PageText;
-use MIME::Base64;
 
 use constant HTTP_HOST => '127.0.0.1';
 use constant HTTP_PORT => 8888;
@@ -96,7 +97,7 @@ HTML
 				$c->send_redirect("/");
 				goto LAST;
 			}
-			
+
 			foreach (keys %query) {
 				next if /(-speed$|-index$|^f$)/;
 				my $key = lc $_;
@@ -175,9 +176,10 @@ HTML
 			my $str = $doc->getPageText($p);
 
 			my @row = split /\n/, $str;
+			(my $color) = ($row[0] =~ /- (.*?) Layer/);
 			my @cols;
 			my $values = '';
-			my $max;
+			my $max = 0;
 			foreach (26 .. 48) {
 				my $val = $row[$_]*4;
 				push @cols, $val;
@@ -188,8 +190,6 @@ HTML
 			# Na nula ne se deli, taka che ni trqbva neshto blizko
 			$max = .0000000000000000000000000001 unless ($max);
 
-			(my $color) = ($row[0] =~ /- (.*?) Layer/);
-
 			$values = encode_base64 $values;
 			chop $values;
 			my $checked = defined $color_map{$color} ? ' checked=checked' : '';
@@ -199,7 +199,7 @@ HTML
 			<td><table style="display:inline-table;background-color:lightgray;height:1.3em;"><tr>
 HTML
 
-			$html_body .= sprintf <<'HTML', $_/4, $_, defined $color_map{$color} ? $color : 'darkgray', ($_ / $max) foreach (@cols); 
+			$html_body .= sprintf <<'HTML', $_/4, $_, defined $color_map{$color} ? $color : 'darkgray', ($_ / $max) foreach (@cols);
 					<td style="vertical-align:bottom;height=1em;" title="%d, (hex*4 0x%04x)">
 						<div style="cursor:default;background-color:%s;height:%fem">&nbsp;</div>
 					</td>
@@ -249,11 +249,11 @@ label {
 %s
 			<tr>
 				<td colspan="4">
-					<table style="width: 100%;"><tr>
-					<td width="50%">
-						<button type="button" style="font-size:1.2em;width: 100%;" id="feed">Качи PDF</button>
-					</td><td width="50%">
-						<button type="submit" style="font-size:1.2em; width: 100%;">Изтегли</button>
+					<table style="width: 100%%;"><tr>
+					<td width="50%%">
+						<button type="button" style="font-size:1.2em;width: 100%%;" id="feed">Качи PDF</button>
+					</td><td width="50%%">
+						<button type="submit" style="font-size:1.2em; width: 100%%;">Изтегли</button>
 					</td>
 					</tr></table>
 				</td>
@@ -274,7 +274,7 @@ label {
 			el.onclick = function() {
 				totalchecked += el.checked ? 1 : -1;
 				foreach.call(d.querySelectorAll('input[type=checkbox]:not(:checked)'), function(en) {
-					en.disabled = totalchecked >= maxchecked;
+					en.disabled = totalchecked >= maxchecked && ! en.checked;
 				});
 			}
 		});
